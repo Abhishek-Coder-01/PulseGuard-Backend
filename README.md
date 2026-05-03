@@ -28,71 +28,6 @@
 
 ---
 
-## 🚀 Quick Start
-
-### 1. Clone karo
-
-```bash
-git clone https://github.com/YOUR_USERNAME/pulseguard.git
-cd pulseguard
-```
-
-### 2. Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### 3. Backend Setup
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-# .env me apni values bharo (niche dekho)
-npm start
-```
-
----
-
-## ⚙️ Environment Variables
-
-### Backend `.env`
-
-```env
-# Server
-PORT=5000
-NODE_ENV=production
-
-# Database
-MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/pulseguard
-
-# JWT Auth
-JWT_SECRET=your_super_secret_jwt_key_here
-JWT_EXPIRES_IN=7d
-
-# Email Notifications (SMTP)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_gmail_app_password
-
-# Ping Settings
-PING_INTERVAL_MS=60000       # Har 60 sec me ping
-PING_TIMEOUT_MS=10000        # 10 sec timeout
-```
-
-### Frontend `.env`
-
-```env
-VITE_API_BASE_URL=https://pulseguard-backend-yuyh.onrender.com
-VITE_WS_URL=wss://pulseguard-backend-yuyh.onrender.com
-```
-
----
-
 ## 🔐 Authentication Flow
 
 PulseGuard JWT-based authentication use karta hai:
@@ -185,7 +120,7 @@ Recharts / Chart.js me graph update
 
 | Type | Trigger | Channel |
 |------|---------|---------|
-| 📧 Email | Site down > 2 min | SMTP (Gmail) |
+| 📧 Downtime Alert | Site down > 1 min | SMTP (Alert) |
 | 🔔 In-App | Har status change | WebSocket push |
 | ✅ Recovery Alert | Site wapas online | Email + In-App |
 
@@ -193,107 +128,61 @@ Recharts / Chart.js me graph update
 
 ## 😴 24/7 Server Alive — Render Free Tier Fix
 
-> **Problem:** Render free tier 15 min inactivity ke baad server **sleep** kar deta hai → pehli request 30 sec late aati hai.
+> **Problem:** Render free tier automatically puts services to sleep after ~15 minutes of inactivity, causing a **cold start delay (~30 seconds)** on the first request.
+
+Render free tier par deployed apps idle hone par sleep mode me chale jaate hain, jiski wajah se user ko pehli request me delay experience hota hai.
 
 ---
 
-### ✅ Method 1: Self-Ping (No External Service — Best Option)
+### 🚀 Solution: Keep-Alive Ping
 
-Apne backend `server.js` me ye add karo:
-
-```javascript
-// services/keepAlive.js
-const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://pulseguard-backend-yuyh.onrender.com';
-const INTERVAL = 14 * 60 * 1000; // 14 minutes
-
-function keepAlive() {
-  setInterval(async () => {
-    try {
-      const res = await fetch(`${SELF_URL}/health`);
-      console.log(`[KeepAlive] ✅ ${res.status} @ ${new Date().toISOString()}`);
-    } catch (err) {
-      console.error('[KeepAlive] ❌ Failed:', err.message);
-    }
-  }, INTERVAL);
-  console.log('[KeepAlive] Self-ping started — server stays alive 24/7');
-}
-
-module.exports = keepAlive;
-```
-
-```javascript
-// server.js me import karo
-const keepAlive = require('./services/keepAlive');
-
-// Health route — ZAROORI HAI
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    uptime: Math.floor(process.uptime()),
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  keepAlive(); // ← ye line add karo
-});
-```
+Server ko continuously active rakhne ke liye ek **uptime monitoring service** use karein jo regular intervals par request (ping) bhejti rahe.
 
 ---
 
-### ✅ Method 2: Free External Ping Services (Recommended Backup)
 
-| Service | Free Monitors | Interval | Link |
-|---------|--------------|----------|------|
-| **UptimeRobot** | 50 monitors | 5 min | [uptimerobot.com](https://uptimerobot.com) |
-| **Cron-job.org** | Unlimited | 1 min | [cron-job.org](https://cron-job.org) |
-| **FreshPing** | 50 monitors | 1 min | [freshping.io](https://freshping.io) |
-| **BetterStack** | 10 monitors | 3 min | [betterstack.com](https://betterstack.com) |
+### ⚠️ Notes
 
-**UptimeRobot Setup (5 min me done):**
-1. [uptimerobot.com](https://uptimerobot.com) par free account banao
-2. Dashboard → **"Add New Monitor"**
-3. Monitor Type: **HTTP(s)**
-4. Friendly Name: `PulseGuard Backend`
-5. URL: `https://pulseguard-backend-yuyh.onrender.com/health`
-6. Monitoring Interval: **5 minutes**
-7. Save → ✅ Done! Server 24/7 alive rahega
+* Free tier me sleep completely avoid karna guaranteed nahi hota
+* Bahut frequent pings (e.g., <1 min) avoid karein
+* Production apps ke liye paid plan consider karein
 
 ---
 
-### ✅ Method 3: GitHub Actions (Completely Free)
+### ✅ Result
 
-```yaml
-# .github/workflows/keep-alive.yml
-name: Keep PulseGuard Backend Alive
+* Faster response time
+* No noticeable cold starts
+* Improved user experience
 
-on:
-  schedule:
-    - cron: '*/14 * * * *'   # Har 14 minute me ping
-  workflow_dispatch:           # Manual trigger bhi
+---
 
-jobs:
-  ping-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Ping PulseGuard Backend
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            https://pulseguard-backend-yuyh.onrender.com/health)
-          echo "Response Status: $STATUS"
-          if [ "$STATUS" = "200" ]; then
-            echo "✅ Backend is alive!"
-          else
-            echo "⚠️ Backend might be down. Status: $STATUS"
-          fi
-```
 
 > ⚠️ **Note:** GitHub Actions free me 2000 min/month milte hain.  
 > Har 14 min ping → ~3100 runs/month → limit cross ho sakti hai.  
 > **Best combo:** Self-ping (Method 1) + UptimeRobot (Method 2) = 100% alive
 
 ---
+
+### 🆓 Cost & Free Usage
+
+* GitHub Actions → Free up to monthly limits
+* UptimeRobot → Free lifetime available
+
+👉 This setup can be used **long-term at no cost** within free-tier limits.
+👉 Effectively, you can keep your server running **“lifetime free”** as long as usage stays within these limits.
+
+---
+
+### ✅ Result
+
+* Reduced or no cold starts
+* Better uptime reliability
+* Stable performance without paying
+
+---
+
+
 
 ## 🗂️ Project Structure
 
@@ -479,6 +368,6 @@ MIT License — Free hai, use karo, improve karo, share karo!
 
 **Made with ❤️ | PulseGuard — Apni sites ka pulse check karo**
 
-[🌐 Live Demo](https://pulse-guard-frontend.vercel.app/#hero) · [⚙️ Backend API](https://pulseguard-backend-yuyh.onrender.com/) · [🐛 Issues](https://github.com/YOUR_USERNAME/pulseguard/issues)
+[🌐 Live Demo](https://pulse-guard-frontend.vercel.app/#hero) · [⚙️ Backend API](https://pulseguard-backend-yuyh.onrender.com/) · [🐛 Issues](https://github.com/Abhishek-coder-01/pulseguard/issues)
 
 </div>
