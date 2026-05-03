@@ -2,7 +2,7 @@
 
 > **Live Monitor karo apne URLs ko | Real-time Graphs | Smart Notifications | 24/7 Server Alive**
 
-[![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel)](https://pulse-guard-frontend.vercel.app/#hero)
+[![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel)](https://pulse-guard-frontend-git-main-abhisheks-projects-ffe0b0f6.vercel.app/)
 [![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render)](https://pulseguard-backend-yuyh.onrender.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
@@ -12,7 +12,7 @@
 
 | Service | URL |
 |---------|-----|
-| 🌐 **Frontend** | [pulse-guard-frontend.vercel.app](https://pulse-guard-frontend.vercel.app/#hero) |
+| 🌐 **Frontend** | [pulse-guard-frontend.vercel.app](https://pulse-guard-frontend-git-main-abhisheks-projects-ffe0b0f6.vercel.app/) |
 | ⚙️ **Backend API** | [pulseguard-backend-yuyh.onrender.com](https://pulseguard-backend-yuyh.onrender.com/) |
 
 ---
@@ -368,6 +368,6 @@ MIT License — Free hai, use karo, improve karo, share karo!
 
 **Made with ❤️ | PulseGuard — Apni sites ka pulse check karo**
 
-[🌐 Live Demo](https://pulse-guard-frontend.vercel.app/#hero) · [⚙️ Backend API](https://pulseguard-backend-yuyh.onrender.com/) · [🐛 Issues](https://github.com/Abhishek-coder-01/pulseguard/issues)
+[🌐 Live Demo](https://pulse-guard-frontend-git-main-abhisheks-projects-ffe0b0f6.vercel.app/) · [⚙️ Backend API](https://pulseguard-backend-yuyh.onrender.com/) · [🐛 Issues](https://github.com/Abhishek-coder-01/pulseguard/issues)
 
 </div>
