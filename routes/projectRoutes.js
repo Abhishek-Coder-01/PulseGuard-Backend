@@ -45,6 +45,28 @@ const normalizeProjectType = (value) => {
   return PROJECT_TYPES.has(normalizedValue) ? normalizedValue : "api";
 };
 
+const pingProjectUrl = async (url) => {
+  const normalizedUrl = normalizeProjectUrl(url);
+  const start = Date.now();
+
+  try {
+    await axios.get(normalizedUrl, { timeout: PING_TIMEOUT_MS });
+    return {
+      status: "up",
+      responseTime: Date.now() - start,
+      timestamp: new Date(),
+      url: normalizedUrl
+    };
+  } catch {
+    return {
+      status: "down",
+      responseTime: Date.now() - start,
+      timestamp: new Date(),
+      url: normalizedUrl
+    };
+  }
+};
+
 const getNextCheckAt = (checkedAt, intervalMinutes) => (
   new Date(checkedAt.getTime() + normalizeIntervalMinutes(intervalMinutes) * 60 * 1000)
 );
@@ -121,20 +143,7 @@ router.post("/", auth, async (req, res) => {
     });
 
     await project.save();
-    const start = Date.now();
-    let status = "down";
-    let responseTime = 0;
-
-    try {
-      await axios.get(project.url, { timeout: PING_TIMEOUT_MS });
-      responseTime = Date.now() - start;
-      status = "up";
-    } catch {
-      responseTime = Date.now() - start;
-      status = "down";
-    }
-
-    const timestamp = new Date();
+    const { status, responseTime, timestamp } = await pingProjectUrl(project.url);
     const nextCheckAt = getNextCheckAt(timestamp, intervalMinutes);
 
     await PingLog.create({
@@ -176,24 +185,13 @@ router.get("/", auth, async (req, res) => {
 router.get("/ping", auth, async (req, res) => {
   const { url, projectId } = req.query;
 
-  if (!url) {
+  const normalizedUrl = normalizeProjectUrl(url);
+
+  if (!normalizedUrl) {
     return res.status(400).json({ message: "URL query parameter is required" });
   }
 
-  const start = Date.now();
-  let status = "down";
-  let responseTime = 0;
-
-  try {
-    await axios.get(url, { timeout: PING_TIMEOUT_MS });
-    responseTime = Date.now() - start;
-    status = "up";
-  } catch {
-    responseTime = Date.now() - start;
-    status = "down";
-  }
-
-  const timestamp = new Date();
+  const { status, responseTime, timestamp } = await pingProjectUrl(normalizedUrl);
   let nextCheckAt = null;
 
   // Save ping log if projectId provided
